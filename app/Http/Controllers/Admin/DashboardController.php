@@ -17,7 +17,7 @@ class DashboardController extends Controller
                 'employers' => User::where('role', 'employer')->count(),
                 'jobSeekers' => User::where('role', 'job_seeker')->count(),
             ],
-            'recentUsers' => User::latest()->take(10)->get(['id', 'name', 'email', 'role', 'created_at']),
+            'recentUsers' => User::latest()->take(10)->get(['id', 'first_name', 'last_name', 'email', 'role', 'created_at']),
             'pendingCount' => User::where('role', 'employer')
                 ->whereHas('employerProfile', function ($query) {
                     $query->where('is_verified', false);

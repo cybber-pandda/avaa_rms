@@ -1,6 +1,8 @@
 export interface User {
     id: number;
-    name: string;
+    first_name: string;
+    last_name: string;
+    username: string | null;
     email: string;
     phone: string | null;
     role: 'admin' | 'employer' | 'job_seeker';
@@ -8,10 +10,13 @@ export interface User {
     profile_completed: boolean;
     email_verified_at: string | null;
     last_login_at: string | null;
+    avatar: string | null;
+    google_id: string | null;
     created_at: string;
     updated_at: string;
     employer_profile?: EmployerProfile | null;
     job_seeker_profile?: JobSeekerProfile | null;
+    work_experiences?: WorkExperience[] | null;
 }
 
 export type PageProps<T extends Record<string, unknown> = Record<string, unknown>> = T & {
@@ -75,6 +80,22 @@ export interface JobSeekerProfile {
     willing_to_relocate: boolean;
     profile_visibility: 'public' | 'private';
     profile_completeness: number;
+    created_at: string;
+    updated_at: string;
+}
+
+export interface WorkExperience {
+    id: number;
+    user_id: number;
+    job_title: string;
+    company: string;
+    employment_type: string | null;
+    location: string | null;
+    start_date: string;
+    end_date: string | null;
+    is_current: boolean;
+    description: string | null;
+    sort_order: number;
     created_at: string;
     updated_at: string;
 }

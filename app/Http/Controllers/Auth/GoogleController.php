@@ -49,10 +49,13 @@ class GoogleController extends Controller
             return redirect()->route($existingUser->getDashboardRoute());
         }
 
-        // New user — store Google data in session and show role selection
+        $fullName = $googleUser->getName() ?? '';
+        $nameParts = explode(' ', $fullName, 2);
+
         $request->session()->put('google_user', [
             'google_id' => $googleUser->getId(),
-            'name' => $googleUser->getName(),
+            'first_name' => $nameParts[0] ?? '',
+            'last_name' => $nameParts[1] ?? '',
             'email' => $googleUser->getEmail(),
             'avatar' => $googleUser->getAvatar(),
         ]);
@@ -72,7 +75,7 @@ class GoogleController extends Controller
         $googleUser = $request->session()->get('google_user');
 
         return Inertia::render('Auth/GoogleRoleSelection', [
-            'googleName' => $googleUser['name'],
+            'googleName' => $googleUser['first_name'] . ' ' . $googleUser['last_name'],
             'googleEmail' => $googleUser['email'],
             'googleAvatar' => $googleUser['avatar'],
         ]);
@@ -101,7 +104,8 @@ class GoogleController extends Controller
         }
 
         $user = User::create([
-            'name' => $googleUser['name'],
+            'first_name' => $googleUser['first_name'],
+            'last_name' => $googleUser['last_name'],
             'email' => $googleUser['email'],
             'google_id' => $googleUser['google_id'],
             'avatar' => $googleUser['avatar'],

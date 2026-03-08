@@ -25,7 +25,7 @@ class EmployerVerificationController extends Controller
             'pendingEmployers' => $pendingEmployers->map(function ($user) {
                 return [
                     'id' => $user->id,
-                    'name' => $user->name,
+                    'name' => $user->first_name . ' ' . $user->last_name,
                     'email' => $user->email,
                     'created_at' => $user->created_at,
                     'profile' => $user->employerProfile ? [
@@ -65,7 +65,7 @@ class EmployerVerificationController extends Controller
 
         $user->notify(new EmployerVerifiedNotification());
 
-        return back()->with('success', "{$user->name} has been verified.");
+        return back()->with('success', "{$user->first_name} {$user->last_name} has been verified.");
     }
 
     public function revoke(User $user): RedirectResponse
@@ -77,6 +77,6 @@ class EmployerVerificationController extends Controller
             'verified_at' => null,
         ]);
 
-        return back()->with('success', "Verification revoked for {$user->name}.");
+        return back()->with('success', "Verification revoked for {$user->first_name} {$user->last_name}.");
     }
 }

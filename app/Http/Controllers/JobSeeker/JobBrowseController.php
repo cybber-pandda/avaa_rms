@@ -20,21 +20,21 @@ class JobBrowseController extends Controller
         $user = Auth::user();
 
         $query = JobListing::where('status', 'active')
-            ->with('employer:id,name');
+            ->with('employer:id,first_name,last_name');
 
         // Search
         if ($search = $request->input('search')) {
             $query->where(function ($q) use ($search) {
                 $q->where('title', 'like', "%{$search}%")
-                  ->orWhere('location', 'like', "%{$search}%")
-                  ->orWhereRaw("JSON_SEARCH(LOWER(skills_required), 'one', LOWER(?)) IS NOT NULL", ["%{$search}%"]);
+                    ->orWhere('location', 'like', "%{$search}%")
+                    ->orWhereRaw("JSON_SEARCH(LOWER(skills_required), 'one', LOWER(?)) IS NOT NULL", ["%{$search}%"]);
             });
         }
 
         // Date posted filter
         match ($request->input('date_posted')) {
             'today' => $query->whereDate('created_at', today()),
-            'week'  => $query->where('created_at', '>=', now()->startOfWeek()),
+            'week' => $query->where('created_at', '>=', now()->startOfWeek()),
             'month' => $query->where('created_at', '>=', now()->startOfMonth()),
             default => null,
         };
@@ -78,15 +78,46 @@ class JobBrowseController extends Controller
             ->unique()->values()->toArray();
 
         $availableCompanies = $allActive
-            ->map(fn($j) => $j->employer?->employerProfile?->company_name ?? $j->employer?->name)
+            ->map(fn($j) => $j->employer?->employerProfile?->company_name ?? $j->employer?->first_name)
             ->filter()->unique()->values()->toArray();
 
         return Inertia::render('JobSeeker/BrowseJobs', [
-            'jobs'               => $shaped,
-            'savedJobIds'        => $savedJobIds,
-            'filters'            => $request->only(['search', 'date_posted', 'skills', 'companies']),
-            'availableSkills'    => $availableSkills,
+            'jobs' => $shaped,
+            'savedJobIds' => $savedJobIds,
+            'filters' => $request->only(['search', 'date_posted', 'skills', 'companies']),
+            'availableSkills' => $availableSkills,
             'availableCompanies' => $availableCompanies,
+            'profileComplete' => (bool) $user->profile_completed,
+        ]);
+    }
+
+    public function show(JobListing $job)
+    {
+        $user = Auth::user();
+
+        $savedJobIds = SavedJob::where('user_id', $user->id)->pluck('job_listing_id')->toArray();
+        $appliedJobIds = JobApplication::where('user_id', $user->id)->pluck('job_listing_id')->toArray();
+
+        $similarJobs = JobListing::where('status', 'active')
+            ->where('id', '!=', $job->id)
+            ->where(function ($q) use ($job) {
+                if ($job->industry) {
+                    $q->where('industry', $job->industry);
+                } else {
+                    // Fall back to same employer if no industry set
+                    $q->where('employer_id', $job->employer_id);
+                }
+            })
+            ->limit(3)
+            ->get()
+            ->map(fn($j) => $this->shapeJob($j, $savedJobIds, $appliedJobIds));
+
+        return Inertia::render('JobSeeker/JobDetail', [
+            'job' => $this->shapeJob($job, $savedJobIds, $appliedJobIds),
+            'isSaved' => in_array($job->id, $savedJobIds),
+            'hasApplied' => in_array($job->id, $appliedJobIds),
+            'similarJobs' => $similarJobs,
+            'recruiter' => null, // wire up later when you have recruiter data
         ]);
     }
 
@@ -99,18 +130,18 @@ class JobBrowseController extends Controller
 
         $savedIds = SavedJob::where('user_id', $user->id)->pluck('job_listing_id');
 
-        $query = JobListing::whereIn('id', $savedIds)->with('employer:id,name');
+        $query = JobListing::whereIn('id', $savedIds)->with('employer:id,first_name,last_name');
 
         if ($search = $request->input('search')) {
             $query->where(function ($q) use ($search) {
                 $q->where('title', 'like', "%{$search}%")
-                  ->orWhere('location', 'like', "%{$search}%");
+                    ->orWhere('location', 'like', "%{$search}%");
             });
         }
 
         match ($request->input('date_posted')) {
             'today' => $query->whereDate('created_at', today()),
-            'week'  => $query->where('created_at', '>=', now()->startOfWeek()),
+            'week' => $query->where('created_at', '>=', now()->startOfWeek()),
             'month' => $query->where('created_at', '>=', now()->startOfMonth()),
             default => null,
         };
@@ -134,13 +165,13 @@ class JobBrowseController extends Controller
 
         // Sidebar aggregates from the user's saved pool
         $allSaved = JobListing::whereIn('id', $savedIds)->get();
-        $availableSkills    = $allSaved->flatMap(fn($j) => $j->skills_required ?? [])->unique()->values()->toArray();
-        $availableCompanies = $allSaved->map(fn($j) => $j->employer?->employerProfile?->company_name ?? $j->employer?->name)->filter()->unique()->values()->toArray();
+        $availableSkills = $allSaved->flatMap(fn($j) => $j->skills_required ?? [])->unique()->values()->toArray();
+        $availableCompanies = $allSaved->map(fn($j) => $j->employer?->employerProfile?->company_name ?? $j->employer?->first_name)->filter()->unique()->values()->toArray();
 
         return Inertia::render('JobSeeker/SavedJobs', [
-            'savedJobs'          => $shaped,
-            'filters'            => $request->only(['search', 'date_posted', 'skills', 'companies']),
-            'availableSkills'    => $availableSkills,
+            'savedJobs' => $shaped,
+            'filters' => $request->only(['search', 'date_posted', 'skills', 'companies']),
+            'availableSkills' => $availableSkills,
             'availableCompanies' => $availableCompanies,
         ]);
     }
@@ -151,7 +182,7 @@ class JobBrowseController extends Controller
     public function save(JobListing $job)
     {
         SavedJob::firstOrCreate([
-            'user_id'        => Auth::id(),
+            'user_id' => Auth::id(),
             'job_listing_id' => $job->id,
         ]);
 
@@ -188,10 +219,10 @@ class JobBrowseController extends Controller
         }
 
         JobApplication::create([
-            'user_id'        => $userId,
+            'user_id' => $userId,
             'job_listing_id' => $job->id,
-            'status'         => 'pending',
-            'resume_path'    => Auth::user()->jobSeekerProfile?->resume_path,
+            'status' => 'pending',
+            'resume_path' => Auth::user()->jobSeekerProfile?->resume_path,
         ]);
 
         return back();
@@ -203,25 +234,25 @@ class JobBrowseController extends Controller
     private function shapeJob(JobListing $job, array $savedIds, array $appliedIds): array
     {
         $companyName = $job->employer?->employerProfile?->company_name
-            ?? $job->employer?->name
+            ?? $job->employer?->first_name
             ?? 'Unknown Company';
 
         return [
-            'id'              => $job->id,
-            'title'           => $job->title,
-            'company'         => $companyName,
-            'location'        => $job->location,
+            'id' => $job->id,
+            'title' => $job->title,
+            'company' => $companyName,
+            'location' => $job->location,
             'employment_type' => $job->employment_type,
-            'salary_min'      => $job->salary_min ? (float) $job->salary_min : null,
-            'salary_max'      => $job->salary_max ? (float) $job->salary_max : null,
+            'salary_min' => $job->salary_min ? (float) $job->salary_min : null,
+            'salary_max' => $job->salary_max ? (float) $job->salary_max : null,
             'salary_currency' => $job->salary_currency ?? 'USD',
             'skills_required' => $job->skills_required ?? [],
-            'posted_date'     => $job->created_at->toISOString(),
-            'description'     => $job->description,
-            'experience_level'=> $job->experience_level,
-            'is_remote'       => (bool) $job->is_remote,
-            'industry'        => $job->industry,
-            'has_applied'     => in_array($job->id, $appliedIds),
+            'posted_date' => $job->created_at->toISOString(),
+            'description' => $job->description,
+            'experience_level' => $job->experience_level,
+            'is_remote' => (bool) $job->is_remote,
+            'industry' => $job->industry,
+            'has_applied' => in_array($job->id, $appliedIds),
         ];
     }
 }

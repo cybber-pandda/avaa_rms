@@ -5,6 +5,8 @@ namespace App\Models;
 use App\Notifications\EmailOtpNotification;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
@@ -13,7 +15,8 @@ class User extends Authenticatable implements MustVerifyEmail
     use HasFactory, Notifiable;
 
     protected $fillable = [
-        'name',
+        'first_name',
+        'last_name',
         'email',
         'phone',
         'password',
@@ -26,6 +29,7 @@ class User extends Authenticatable implements MustVerifyEmail
         'email_otp',
         'email_otp_expires_at',
         'email_verified_at',
+        'username',
     ];
 
     protected $hidden = ['password', 'remember_token'];
@@ -38,24 +42,59 @@ class User extends Authenticatable implements MustVerifyEmail
         'password' => 'hashed',
     ];
 
-    public function employerProfile()
+    /* ── Relationships ─────────────────────────────────────────────────── */
+
+    public function employerProfile(): HasOne
     {
         return $this->hasOne(EmployerProfile::class);
     }
 
-    public function jobSeekerProfile()
+    public function jobSeekerProfile(): HasOne
     {
         return $this->hasOne(JobSeekerProfile::class);
     }
+
+    public function workExperiences(): HasMany
+    {
+        return $this->hasMany(WorkExperience::class)->orderByDesc('is_current')->orderByDesc('start_date');
+    }
+
+    /**
+     * Full name accessor — returns "First Last".
+     */
+    public function getFullNameAttribute(): string
+    {
+        return trim("{$this->first_name} {$this->last_name}");
+    }
+
+    /** All user documents — resumes, certificates, diplomas, etc. */
+    public function documents(): HasMany
+    {
+        return $this->hasMany(UserDocument::class);
+    }
+
+    public function securitySettings(): HasOne
+    {
+        return $this->hasOne(UserSecuritySettings::class);
+    }
+
+    public function notificationSettings(): HasOne
+    {
+        return $this->hasOne(UserNotificationSettings::class);
+    }
+
+    /* ── Role helpers ──────────────────────────────────────────────────── */
 
     public function isAdmin(): bool
     {
         return $this->role === 'admin';
     }
+
     public function isEmployer(): bool
     {
         return $this->role === 'employer';
     }
+
     public function isJobSeeker(): bool
     {
         return $this->role === 'job_seeker';
@@ -66,9 +105,11 @@ class User extends Authenticatable implements MustVerifyEmail
         return match ($this->role) {
             'admin' => 'admin.dashboard',
             'employer' => 'employer.dashboard',
-            'job_seeker' => 'job-seeker.dashboard',
+            'job_seeker' => 'job-seeker.jobs.browse',
         };
     }
+
+    /* ── OTP ───────────────────────────────────────────────────────────── */
 
     /**
      * Generate a 6-digit OTP, persist it with a 10-minute expiry, and return it.

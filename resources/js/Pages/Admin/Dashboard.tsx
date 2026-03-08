@@ -2,9 +2,9 @@ import { Head } from '@inertiajs/react';
 import AppLayout from '@/Layouts/AppLayout';
 
 interface Props {
-    auth: { user: { name: string; email: string; role: string } };
+    auth: { user: { first_name: string; last_name: string; email: string; role: string } };
     stats: { total: number; employers: number; jobSeekers: number };
-    recentUsers: Array<{ id: number; name: string; email: string; role: string; created_at: string }>;
+    recentUsers: Array<{ id: number; first_name: string; last_name: string; email: string; role: string; created_at: string }>;
     pendingCount?: number;
 }
 
@@ -84,7 +84,7 @@ export default function AdminDashboard({ auth, stats, recentUsers, pendingCount 
             <Head title="Admin Dashboard" />
             <AppLayout
                 pageTitle="Dashboard"
-                pageSubtitle={`Welcome back ${user.name}, here's what's happening today.`}
+                pageSubtitle={`Welcome back ${user.first_name}, here's what's happening today.`}
                 activeNav="Dashboard"
             >
                 {/* ── Stats row ── */}
@@ -190,9 +190,9 @@ export default function AdminDashboard({ auth, stats, recentUsers, pendingCount 
                                         <td className="px-5 py-3.5">
                                             <div className="flex items-center gap-2.5">
                                                 <div className={`w-7 h-7 rounded-full ${AVATAR_BG[i % AVATAR_BG.length]} flex items-center justify-center text-white text-[10px] font-bold flex-shrink-0`}>
-                                                    {u.name.charAt(0)}
+                                                    {(u.first_name ?? '').charAt(0)}
                                                 </div>
-                                                <span className="font-medium text-avaa-dark">{u.name}</span>
+                                                <span className="font-medium text-avaa-dark">{u.first_name} {u.last_name}</span>
                                             </div>
                                         </td>
                                         <td className="px-5 py-3.5 text-avaa-muted">{u.email}</td>

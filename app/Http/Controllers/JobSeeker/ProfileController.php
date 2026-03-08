@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\JobSeeker;
 
 use App\Http\Controllers\Controller;
+use App\Models\UserDocument;
 use Illuminate\Http\Request;
 use Illuminate\Http\RedirectResponse;
 use Inertia\Inertia;
@@ -11,15 +12,30 @@ use Inertia\Response;
 class ProfileController extends Controller
 {
     /**
+     * Show the job seeker's read-only profile view.
+     */
+    public function show(Request $request): Response
+    {
+        $user = $request->user()->load(['jobSeekerProfile', 'workExperiences']);
+
+        return Inertia::render('JobSeeker/Profile', [
+            'user' => $user,
+            'profile' => $user->jobSeekerProfile,
+            'experiences' => $user->workExperiences,
+        ]);
+    }
+
+    /**
      * Show the job seeker's profile edit page.
      */
     public function edit(Request $request): Response
     {
-        $user = $request->user()->load('jobSeekerProfile');
+        $user = $request->user()->load(['jobSeekerProfile', 'workExperiences']);
 
-        return Inertia::render('JobSeeker/Profile', [
-            'user'    => $user,
+        return Inertia::render('JobSeeker/ProfileEdit', [
+            'user' => $user,
             'profile' => $user->jobSeekerProfile,
+            'experiences' => $user->workExperiences,
         ]);
     }
 
@@ -29,65 +45,43 @@ class ProfileController extends Controller
     public function complete(Request $request): RedirectResponse
     {
         $request->validate([
-            'professional_title'  => 'required|string|max:255',
-            'city'                => 'required|string|max:100',
-            'country'             => 'required|string|max:100',
+            'professional_title' => 'required|string|max:255',
+            'city' => 'required|string|max:100',
+            'country' => 'required|string|max:100',
             'years_of_experience' => 'required|string',
-            'state'               => 'nullable|string|max:100',
-            'skills'              => 'nullable|array',
-            'resume'              => 'nullable|file|mimes:pdf,doc,docx|max:10240',
-            'current_job_title'           => 'nullable|string|max:255',
-            'current_company'             => 'nullable|string|max:255',
-            'employment_type_preference'  => 'nullable|array',
-            'highest_education'           => 'nullable|string',
-            'field_of_study'              => 'nullable|string|max:255',
-            'institution_name'            => 'nullable|string|max:255',
-            'certifications'              => 'nullable|array',
-            'portfolio_url'               => 'nullable|string|max:255',
-            'linkedin_url'                => 'nullable|string|max:255',
-            'desired_job_types'           => 'nullable|array',
-            'desired_industries'          => 'nullable|array',
-            'expected_salary_min'         => 'nullable|numeric|min:0',
-            'expected_salary_max'         => 'nullable|numeric|min:0',
-            'salary_currency'             => 'nullable|string|size:3',
-            'willing_to_relocate'         => 'nullable',
-            'profile_visibility'          => 'nullable|in:public,private',
+            'state' => 'nullable|string|max:100',
+            'skills' => 'nullable|array',
+            'resume' => 'nullable|file|mimes:pdf,doc,docx|max:10240',
         ]);
 
         $user = $request->user();
 
         $resumePath = null;
         if ($request->hasFile('resume')) {
-            $resumePath = $request->file('resume')->store("resumes/{$user->id}", 'local');
+            $file = $request->file('resume');
+            $resumePath = $file->store("resumes/{$user->id}", 'local');
+
+            // Also create a user_documents entry so it shows in Settings > Documents
+            $user->documents()->create([
+                'file_name' => $file->getClientOriginalName(),
+                'file_path' => $resumePath,
+                'file_type' => strtolower($file->getClientOriginalExtension()),
+                'file_size' => $file->getSize(),
+                'document_type' => 'CV / Resume',
+            ]);
         }
 
         $completeness = $this->calculateCompleteness($request, $resumePath);
 
         $user->jobSeekerProfile()->create([
-            'professional_title'          => $request->professional_title,
-            'city'                        => $request->city,
-            'state'                       => $request->state,
-            'country'                     => $request->country,
-            'current_job_title'           => $request->current_job_title,
-            'current_company'             => $request->current_company,
-            'years_of_experience'         => $request->years_of_experience,
-            'employment_type_preference'  => $request->employment_type_preference ?? [],
-            'highest_education'           => $request->highest_education ?? '',
-            'field_of_study'              => $request->field_of_study,
-            'institution_name'            => $request->institution_name,
-            'skills'                      => $request->skills ?? [],
-            'certifications'              => $request->certifications ?? [],
-            'resume_path'                 => $resumePath,
-            'portfolio_url'               => $request->portfolio_url,
-            'linkedin_url'                => $request->linkedin_url,
-            'desired_job_types'           => $request->desired_job_types ?? [],
-            'desired_industries'          => $request->desired_industries ?? [],
-            'expected_salary_min'         => $request->expected_salary_min,
-            'expected_salary_max'         => $request->expected_salary_max,
-            'salary_currency'             => $request->salary_currency ?? 'USD',
-            'willing_to_relocate'         => filter_var($request->willing_to_relocate, FILTER_VALIDATE_BOOLEAN),
-            'profile_visibility'          => $request->profile_visibility ?? 'public',
-            'profile_completeness'        => $completeness,
+            'professional_title' => $request->professional_title,
+            'city' => $request->city,
+            'state' => $request->state,
+            'country' => $request->country,
+            'years_of_experience' => $request->years_of_experience,
+            'skills' => $request->skills ?? [],
+            'resume_path' => $resumePath,
+            'profile_completeness' => $completeness,
         ]);
 
         $user->update(['profile_completed' => true]);
@@ -101,33 +95,34 @@ class ProfileController extends Controller
     public function update(Request $request): RedirectResponse
     {
         $request->validate([
-            'professional_title'  => 'required|string|max:255',
-            'city'                => 'required|string|max:100',
-            'country'             => 'required|string|max:100',
+            'about' => 'nullable|string|max:2000',
+            'professional_title' => 'required|string|max:255',
+            'city' => 'required|string|max:100',
+            'country' => 'required|string|max:100',
             'years_of_experience' => 'required|string',
-            'state'               => 'nullable|string|max:100',
-            'phone'               => 'nullable|string|max:30',
-            'skills'              => 'nullable|array',
-            'resume'              => 'nullable|file|mimes:pdf,doc,docx|max:10240',
-            'current_job_title'           => 'nullable|string|max:255',
-            'current_company'             => 'nullable|string|max:255',
-            'employment_type_preference'  => 'nullable|array',
-            'highest_education'           => 'nullable|string',
-            'field_of_study'              => 'nullable|string|max:255',
-            'institution_name'            => 'nullable|string|max:255',
-            'certifications'              => 'nullable|array',
-            'portfolio_url'               => 'nullable|string|max:255',
-            'linkedin_url'                => 'nullable|string|max:255',
-            'desired_job_types'           => 'nullable|array',
-            'desired_industries'          => 'nullable|array',
-            'expected_salary_min'         => 'nullable|numeric|min:0',
-            'expected_salary_max'         => 'nullable|numeric|min:0',
-            'salary_currency'             => 'nullable|string|size:3',
-            'willing_to_relocate'         => 'nullable',
-            'profile_visibility'          => 'nullable|in:public,private',
+            'state' => 'nullable|string|max:100',
+            'phone' => 'nullable|string|max:30',
+            'skills' => 'nullable|array',
+            'resume' => 'nullable|file|mimes:pdf,doc,docx|max:10240',
+            'current_job_title' => 'nullable|string|max:255',
+            'current_company' => 'nullable|string|max:255',
+            'highest_education' => 'nullable|string',
+            'field_of_study' => 'nullable|string|max:255',
+            'institution_name' => 'nullable|string|max:255',
+            'certifications' => 'nullable|array',
+            'portfolio_url' => 'nullable|string|max:255',
+            'linkedin_url' => 'nullable|string|max:255',
+            'employment_type_preference' => 'nullable|array',
+            'desired_job_types' => 'nullable|array',
+            'desired_industries' => 'nullable|array',
+            'expected_salary_min' => 'nullable|numeric|min:0',
+            'expected_salary_max' => 'nullable|numeric|min:0',
+            'salary_currency' => 'nullable|string|size:3',
+            'willing_to_relocate' => 'nullable',
+            'profile_visibility' => 'nullable|in:public,private',
         ]);
 
-        $user    = $request->user();
+        $user = $request->user();
         $profile = $user->jobSeekerProfile;
 
         // Save phone to users table if provided
@@ -144,33 +139,34 @@ class ProfileController extends Controller
         $completeness = $this->calculateCompleteness($request, $resumePath);
 
         $profile->update([
-            'professional_title'          => $request->professional_title,
-            'city'                        => $request->city,
-            'state'                       => $request->state,
-            'country'                     => $request->country,
-            'current_job_title'           => $request->current_job_title,
-            'current_company'             => $request->current_company,
-            'years_of_experience'         => $request->years_of_experience,
-            'employment_type_preference'  => $request->employment_type_preference ?? [],
-            'highest_education'           => $request->highest_education ?? '',
-            'field_of_study'              => $request->field_of_study,
-            'institution_name'            => $request->institution_name,
-            'skills'                      => $request->skills ?? [],
-            'certifications'              => $request->certifications ?? [],
-            'resume_path'                 => $resumePath,
-            'portfolio_url'               => $request->portfolio_url,
-            'linkedin_url'                => $request->linkedin_url,
-            'desired_job_types'           => $request->desired_job_types ?? [],
-            'desired_industries'          => $request->desired_industries ?? [],
-            'expected_salary_min'         => $request->expected_salary_min,
-            'expected_salary_max'         => $request->expected_salary_max,
-            'salary_currency'             => $request->salary_currency ?? 'USD',
-            'willing_to_relocate'         => filter_var($request->willing_to_relocate, FILTER_VALIDATE_BOOLEAN),
-            'profile_visibility'          => $request->profile_visibility ?? 'public',
-            'profile_completeness'        => $completeness,
+            'about' => $request->about,
+            'professional_title' => $request->professional_title,
+            'city' => $request->city,
+            'state' => $request->state,
+            'country' => $request->country,
+            'current_job_title' => $request->current_job_title,
+            'current_company' => $request->current_company,
+            'years_of_experience' => $request->years_of_experience,
+            'employment_type_preference' => $request->employment_type_preference ?? [],
+            'highest_education' => $request->highest_education ?? '',
+            'field_of_study' => $request->field_of_study,
+            'institution_name' => $request->institution_name,
+            'skills' => $request->skills ?? [],
+            'certifications' => $request->certifications ?? [],
+            'resume_path' => $resumePath,
+            'portfolio_url' => $request->portfolio_url,
+            'linkedin_url' => $request->linkedin_url,
+            'desired_job_types' => $request->desired_job_types ?? [],
+            'desired_industries' => $request->desired_industries ?? [],
+            'expected_salary_min' => $request->expected_salary_min,
+            'expected_salary_max' => $request->expected_salary_max,
+            'salary_currency' => $request->salary_currency ?? 'USD',
+            'willing_to_relocate' => filter_var($request->willing_to_relocate, FILTER_VALIDATE_BOOLEAN),
+            'profile_visibility' => $request->profile_visibility ?? 'public',
+            'profile_completeness' => $completeness,
         ]);
 
-        return back()->with('success', 'Profile updated successfully!');
+        return redirect()->route('job-seeker.profile.show')->with('success', 'Profile updated successfully!');
     }
 
     /**

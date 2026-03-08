@@ -4,27 +4,28 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-return new class extends Migration
-{
+return new class extends Migration {
     public function up(): void
     {
-        Schema::create('saved_jobs', function (Blueprint $table) {
+        Schema::create('job_applications', function (Blueprint $table) {
             $table->id();
             $table->foreignId('user_id')
-                  ->constrained()
-                  ->cascadeOnDelete();
+                ->constrained()
+                ->cascadeOnDelete();
             $table->foreignId('job_listing_id')
-                  ->constrained()
-                  ->cascadeOnDelete();
+                ->constrained()
+                ->cascadeOnDelete();
+            $table->string('status')->default('pending');
+            $table->text('cover_letter')->nullable();
+            $table->string('resume_path')->nullable();
             $table->timestamps();
 
-            // A user can only save a job once
             $table->unique(['user_id', 'job_listing_id']);
         });
     }
 
     public function down(): void
     {
-        Schema::dropIfExists('saved_jobs');
+        Schema::dropIfExists('job_applications');
     }
 };

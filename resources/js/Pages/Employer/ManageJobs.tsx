@@ -24,7 +24,7 @@ interface JobListing {
 }
 
 interface Props {
-    user: { name: string; email: string; role: string };
+    user: { first_name: string; last_name: string; email: string; role: string };
     profile: any;
     jobs: JobListing[];
     isVerified: boolean;
@@ -624,7 +624,7 @@ export default function ManageJobs({ user, profile, jobs, isVerified }: Props) {
     const [editJob, setEditJob] = useState<JobListing | null>(null);
     const [showCreate, setShowCreate] = useState(false);
 
-    const companyName = profile?.company_name ?? user.name;
+    const companyName = profile?.company_name ?? `${user.first_name} ${user.last_name}`;
 
     const filtered = jobs.filter(j => {
         const matchFilter = filter === 'all' || j.status === filter;
@@ -666,8 +666,8 @@ export default function ManageJobs({ user, profile, jobs, isVerified }: Props) {
                         {(['all', 'active', 'inactive'] as const).map(tab => (
                             <button key={tab} onClick={() => setFilter(tab)}
                                 className={`px-4 py-1.5 rounded-lg text-sm font-medium capitalize transition-all ${filter === tab
-                                        ? 'bg-avaa-primary text-white shadow-sm'
-                                        : 'text-gray-500 hover:text-avaa-dark hover:bg-gray-50'
+                                    ? 'bg-avaa-primary text-white shadow-sm'
+                                    : 'text-gray-500 hover:text-avaa-dark hover:bg-gray-50'
                                     }`}>
                                 {tab}
                                 <span className={`ml-1.5 text-[10px] font-bold px-1.5 py-0.5 rounded-full ${filter === tab ? 'bg-white/20 text-white' : 'bg-gray-100 text-gray-500'

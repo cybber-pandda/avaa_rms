@@ -13,14 +13,19 @@ class JobApplication extends Model
         'status',
         'cover_letter',
         'resume_path',
+        'application_data',
+        'rejection_reason',
         'employer_notes',
         'reviewed_at',
-        'shortlisted_at',
+        'hired_at',
+        'contract_ended_at',
     ];
 
     protected $casts = [
-        'reviewed_at'    => 'datetime',
-        'shortlisted_at' => 'datetime',
+        'reviewed_at' => 'datetime',
+        'hired_at' => 'datetime',
+        'contract_ended_at' => 'datetime',
+        'application_data' => 'array',
     ];
 
     /* ── Relationships ── */
@@ -35,6 +40,11 @@ class JobApplication extends Model
         return $this->belongsTo(User::class);
     }
 
+    public function interview()
+    {
+        return $this->hasOne(\App\Models\Interview::class);
+    }
+
     /* ── Scopes ── */
 
     public function scopePending($query)
@@ -42,8 +52,8 @@ class JobApplication extends Model
         return $query->where('status', 'pending');
     }
 
-    public function scopeShortlisted($query)
+    public function scopeApproved($query)
     {
-        return $query->where('status', 'shortlisted');
+        return $query->where('status', 'approved');
     }
 }

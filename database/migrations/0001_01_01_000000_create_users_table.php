@@ -12,11 +12,17 @@ return new class extends Migration {
     {
         Schema::create('users', function (Blueprint $table) {
             $table->id();
-            $table->string('name');
+            $table->string('first_name');
+            $table->string('last_name');
+            $table->string('username')->nullable()->unique();
             $table->string('email')->unique();
             $table->string('phone')->nullable();
             $table->timestamp('email_verified_at')->nullable();
+            $table->string('email_otp', 6)->nullable();
+            $table->timestamp('email_otp_expires_at')->nullable();
             $table->string('password');
+            $table->string('google_id')->nullable()->unique();
+            $table->string('avatar')->nullable();
             $table->enum('role', ['admin', 'employer', 'job_seeker'])->default('job_seeker');
             $table->enum('status', ['pending', 'active', 'suspended'])->default('active');
             $table->boolean('profile_completed')->default(false);

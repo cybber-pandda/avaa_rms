@@ -46,7 +46,8 @@ function PasswordStrength({ password }: { password: string }) {
 export default function RegisterForm({ role, storeRoute, backRoute, title, subtitle }: Props) {
     const [showPassword, setShowPassword] = useState(false);
     const { data, setData, post, processing, errors } = useForm({
-        name: '', email: '', phone: '', password: '', password_confirmation: '',
+        first_name: '', last_name: '', username: '',
+        email: '', phone: '', password: '', password_confirmation: '',
     });
 
     const submit: FormEventHandler = (e) => {
@@ -60,22 +61,68 @@ export default function RegisterForm({ role, storeRoute, backRoute, title, subti
     return (
         <AuthLayout title={title} subtitle={subtitle}>
             <form onSubmit={submit} className="space-y-5">
-                {/* Full Name & Phone - side by side */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {/* First Name, Last Name, Username — 3 cols */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                     <div>
-                        <label htmlFor="name" className="block text-base font-medium text-avaa-text">Full Name</label>
+                        <label htmlFor="first_name" className="block text-base font-medium text-avaa-text">First Name</label>
                         <input
-                            id="name"
+                            id="first_name"
                             type="text"
-                            value={data.name}
+                            value={data.first_name}
                             className={inputClass}
-                            autoComplete="name"
+                            autoComplete="given-name"
                             autoFocus
-                            placeholder="John Doe"
-                            onChange={e => setData('name', e.target.value)}
+                            placeholder="John"
+                            onChange={e => setData('first_name', e.target.value)}
                             required
                         />
-                        <InputError message={errors.name} className="mt-1" />
+                        <InputError message={errors.first_name} className="mt-1" />
+                    </div>
+                    <div>
+                        <label htmlFor="last_name" className="block text-base font-medium text-avaa-text">Last Name</label>
+                        <input
+                            id="last_name"
+                            type="text"
+                            value={data.last_name}
+                            className={inputClass}
+                            autoComplete="family-name"
+                            placeholder="Doe"
+                            onChange={e => setData('last_name', e.target.value)}
+                            required
+                        />
+                        <InputError message={errors.last_name} className="mt-1" />
+                    </div>
+                    <div>
+                        <label htmlFor="username" className="block text-base font-medium text-avaa-text">Username</label>
+                        <input
+                            id="username"
+                            type="text"
+                            value={data.username}
+                            className={inputClass}
+                            autoComplete="username"
+                            placeholder="@johndoe"
+                            onChange={e => setData('username', e.target.value)}
+                            required
+                        />
+                        <InputError message={errors.username} className="mt-1" />
+                    </div>
+                </div>
+
+                {/* Email & Phone - side by side */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                        <label htmlFor="email" className="block text-base font-medium text-avaa-text">Email Address</label>
+                        <input
+                            id="email"
+                            type="email"
+                            value={data.email}
+                            className={inputClass}
+                            autoComplete="email"
+                            placeholder="you@example.com"
+                            onChange={e => setData('email', e.target.value)}
+                            required
+                        />
+                        <InputError message={errors.email} className="mt-1" />
                     </div>
                     <div>
                         <label htmlFor="phone" className="block text-base font-medium text-avaa-text">Phone Number</label>
@@ -91,22 +138,6 @@ export default function RegisterForm({ role, storeRoute, backRoute, title, subti
                         />
                         <InputError message={errors.phone} className="mt-1" />
                     </div>
-                </div>
-
-                {/* Email - full width */}
-                <div>
-                    <label htmlFor="email" className="block text-base font-medium text-avaa-text">Email Address</label>
-                    <input
-                        id="email"
-                        type="email"
-                        value={data.email}
-                        className={inputClass}
-                        autoComplete="username"
-                        placeholder="you@example.com"
-                        onChange={e => setData('email', e.target.value)}
-                        required
-                    />
-                    <InputError message={errors.email} className="mt-1" />
                 </div>
 
                 {/* Password */}

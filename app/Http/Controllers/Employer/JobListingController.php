@@ -4,8 +4,13 @@ namespace App\Http\Controllers\Employer;
 
 use App\Http\Controllers\Controller;
 use App\Models\JobListing;
+use App\Models\JobApplication;
+use App\Models\Interview;
+use App\Mail\ApplicationRejected;
+use App\Mail\InterviewScheduled;
 use Illuminate\Http\Request;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Support\Facades\Mail;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -23,71 +28,71 @@ class JobListingController extends Controller
             ->orderByDesc('created_at')
             ->get()
             ->map(fn($job) => [
-                'id'                 => $job->id,
-                'title'              => $job->title,
-                'location'           => $job->location,
-                'company'            => $user->employerProfile?->company_name ?? $user->name,
-                'status'             => $job->status,
+                'id' => $job->id,
+                'title' => $job->title,
+                'location' => $job->location,
+                'company' => $user->employerProfile?->company_name ?? "{$user->first_name} {$user->last_name}",
+                'status' => $job->status,
                 'applications_count' => $job->applications_count,
-                'posted_date'        => $job->created_at->toDateString(),
-                'description'        => $job->description,
-                'employment_type'    => $job->employment_type,
-                'salary_min'         => $job->salary_min,
-                'salary_max'         => $job->salary_max,
-                'salary_currency'    => $job->salary_currency,
-                'skills_required'    => $job->skills_required ?? [],
-                'experience_level'   => $job->experience_level,
-                'is_remote'          => $job->is_remote,
-                'deadline'           => $job->deadline?->toDateString(),
-                'industry'           => $job->industry,
+                'posted_date' => $job->created_at->toDateString(),
+                'description' => $job->description,
+                'employment_type' => $job->employment_type,
+                'salary_min' => $job->salary_min,
+                'salary_max' => $job->salary_max,
+                'salary_currency' => $job->salary_currency,
+                'skills_required' => $job->skills_required ?? [],
+                'experience_level' => $job->experience_level,
+                'is_remote' => $job->is_remote,
+                'deadline' => $job->deadline?->toDateString(),
+                'industry' => $job->industry,
             ]);
 
         return Inertia::render('Employer/ManageJobs', [
-            'user'       => $user,
-            'profile'    => $user->employerProfile,
-            'jobs'       => $jobs,
+            'user' => $user,
+            'profile' => $user->employerProfile,
+            'jobs' => $jobs,
             'isVerified' => $user->employerProfile?->is_verified ?? false,
         ]);
     }
 
     /**
-     * Store a new job listing (called from the Create Job modal).
+     * Store a new job listing.
      */
     public function store(Request $request): RedirectResponse
     {
         $request->validate([
-            'title'             => 'required|string|max:255',
-            'location'          => 'required|string|max:255',
-            'description'       => 'required|string|min:10',
-            'employment_type'   => 'required|string',
-            'salary_min'        => 'nullable|numeric|min:0',
-            'salary_max'        => 'nullable|numeric|min:0|gte:salary_min',
-            'salary_currency'   => 'nullable|string|size:3',
-            'skills_required'   => 'nullable|array',
+            'title' => 'required|string|max:255',
+            'location' => 'required|string|max:255',
+            'description' => 'required|string|min:10',
+            'employment_type' => 'required|string',
+            'salary_min' => 'nullable|numeric|min:0',
+            'salary_max' => 'nullable|numeric|min:0|gte:salary_min',
+            'salary_currency' => 'nullable|string|size:3',
+            'skills_required' => 'nullable|array',
             'skills_required.*' => 'string|max:100',
-            'experience_level'  => 'nullable|string',
-            'industry'          => 'nullable|string',
-            'is_remote'         => 'boolean',
-            'deadline'          => 'nullable|date|after:today',
-            'status'            => 'nullable|in:active,inactive,draft',
+            'experience_level' => 'nullable|string',
+            'industry' => 'nullable|string',
+            'is_remote' => 'boolean',
+            'deadline' => 'nullable|date|after:today',
+            'status' => 'nullable|in:active,inactive,draft',
             'application_limit' => 'nullable|integer|min:1',
         ]);
 
         JobListing::create([
-            'employer_id'       => $request->user()->id,
-            'title'             => $request->title,
-            'location'          => $request->location,
-            'description'       => $request->description,
-            'employment_type'   => $request->employment_type,
-            'salary_min'        => $request->salary_min,
-            'salary_max'        => $request->salary_max,
-            'salary_currency'   => $request->salary_currency ?? 'USD',
-            'skills_required'   => $request->skills_required ?? [],
-            'experience_level'  => $request->experience_level,
-            'industry'          => $request->industry,
-            'is_remote'         => $request->boolean('is_remote'),
-            'deadline'          => $request->deadline,
-            'status'            => $request->status ?? 'active',
+            'employer_id' => $request->user()->id,
+            'title' => $request->title,
+            'location' => $request->location,
+            'description' => $request->description,
+            'employment_type' => $request->employment_type,
+            'salary_min' => $request->salary_min,
+            'salary_max' => $request->salary_max,
+            'salary_currency' => $request->salary_currency ?? 'USD',
+            'skills_required' => $request->skills_required ?? [],
+            'experience_level' => $request->experience_level,
+            'industry' => $request->industry,
+            'is_remote' => $request->boolean('is_remote'),
+            'deadline' => $request->deadline,
+            'status' => $request->status ?? 'active',
             'application_limit' => $request->application_limit,
         ]);
 
@@ -95,53 +100,58 @@ class JobListingController extends Controller
     }
 
     /**
-     * Update an existing job listing (called from the Edit Job modal).
+     * Update an existing job listing.
      */
     public function update(Request $request, JobListing $job): RedirectResponse
     {
         $this->authorizeJob($request, $job);
 
         $request->validate([
-            'title'             => 'required|string|max:255',
-            'location'          => 'required|string|max:255',
-            'description'       => 'required|string|min:10',
-            'employment_type'   => 'required|string',
-            'salary_min'        => 'nullable|numeric|min:0',
-            'salary_max'        => 'nullable|numeric|min:0|gte:salary_min',
-            'salary_currency'   => 'nullable|string|size:3',
-            'skills_required'   => 'nullable|array',
+            'title' => 'required|string|max:255',
+            'location' => 'required|string|max:255',
+            'description' => 'required|string|min:10',
+            'employment_type' => 'required|string',
+            'salary_min' => 'nullable|numeric|min:0',
+            'salary_max' => 'nullable|numeric|min:0|gte:salary_min',
+            'salary_currency' => 'nullable|string|size:3',
+            'skills_required' => 'nullable|array',
             'skills_required.*' => 'string|max:100',
-            'experience_level'  => 'nullable|string',
-            'industry'          => 'nullable|string',
-            'is_remote'         => 'boolean',
-            'deadline'          => 'nullable|date',
-            'status'            => 'nullable|in:active,inactive,draft',
+            'experience_level' => 'nullable|string',
+            'industry' => 'nullable|string',
+            'is_remote' => 'boolean',
+            'deadline' => 'nullable|date',
+            'status' => 'nullable|in:active,inactive,draft',
             'application_limit' => 'nullable|integer|min:1',
         ]);
 
         $job->update($request->only([
-            'title', 'location', 'description', 'employment_type',
-            'salary_min', 'salary_max', 'salary_currency',
-            'skills_required', 'experience_level', 'industry',
-            'is_remote', 'deadline', 'status', 'application_limit',
+            'title',
+            'location',
+            'description',
+            'employment_type',
+            'salary_min',
+            'salary_max',
+            'salary_currency',
+            'skills_required',
+            'experience_level',
+            'industry',
+            'is_remote',
+            'deadline',
+            'status',
+            'application_limit',
         ]));
 
         return back()->with('success', 'Job listing updated successfully!');
     }
 
     /**
-     * Update only the status (inline table dropdown).
+     * Update only the job listing status.
      */
     public function updateStatus(Request $request, JobListing $job): RedirectResponse
     {
         $this->authorizeJob($request, $job);
-
-        $request->validate([
-            'status' => 'required|in:active,inactive,draft',
-        ]);
-
+        $request->validate(['status' => 'required|in:active,inactive,draft']);
         $job->update(['status' => $request->status]);
-
         return back()->with('success', 'Job status updated.');
     }
 
@@ -152,7 +162,6 @@ class JobListingController extends Controller
     {
         $this->authorizeJob($request, $job);
         $job->delete();
-
         return back()->with('success', 'Job listing deleted.');
     }
 
@@ -164,16 +173,151 @@ class JobListingController extends Controller
         $this->authorizeJob($request, $job);
 
         $user = $request->user()->load('employerProfile');
+        $profile = $user->employerProfile;
+        $companyName = $profile?->company_name ?? "{$user->first_name} {$user->last_name}";
+
+        // Build employer address for pre-filling the in-person interview location
+        $employerAddress = collect([
+            $profile?->headquarters_address,
+            $profile?->city,
+            $profile?->state,
+            $profile?->country,
+        ])->filter()->implode(', ');
+
+        $applications = $job->applications()
+            ->where('status', '!=', 'draft')
+            ->with('user.jobSeekerProfile')
+            ->orderByDesc('created_at')
+            ->get()
+            ->map(fn($app) => [
+                'id' => $app->id,
+                'status' => $app->status,
+                'cover_letter' => $app->cover_letter,
+                'resume_path' => $app->resume_path,
+                'application_data' => $app->application_data,
+                'created_at' => $app->created_at->toDateString(),
+                'user' => [
+                    'id' => $app->user->id,
+                    'first_name' => $app->user->first_name,
+                    'last_name' => $app->user->last_name,
+                    'email' => $app->user->email,
+                    'phone' => $app->user->phone,
+                    'avatar' => $app->user->avatar,
+                    'profile' => $app->user->jobSeekerProfile ? [
+                        'professional_title' => $app->user->jobSeekerProfile->professional_title,
+                        'current_job_title' => $app->user->jobSeekerProfile->current_job_title,
+                        'current_company' => $app->user->jobSeekerProfile->current_company,
+                        'city' => $app->user->jobSeekerProfile->city,
+                        'state' => $app->user->jobSeekerProfile->state,
+                        'country' => $app->user->jobSeekerProfile->country,
+                        'skills' => $app->user->jobSeekerProfile->skills,
+                        'resume_path' => $app->user->jobSeekerProfile->resume_path,
+                    ] : null,
+                ],
+            ]);
 
         return Inertia::render('Employer/JobApplications', [
-            'user'         => $user,
-            'profile'      => $user->employerProfile,
-            'job'          => $job,
-            'applications' => $job->applications()
-                ->with('user.jobSeekerProfile')
-                ->orderByDesc('created_at')
-                ->get(),
+            'job' => [
+                'id' => $job->id,
+                'title' => $job->title,
+                'company' => $companyName,
+                'location' => $job->location,
+                'employment_type' => $job->employment_type,
+                'posted_date' => $job->created_at->toDateString(),
+            ],
+            'applications' => $applications,
+            'employerAddress' => $employerAddress ?: null,
         ]);
+    }
+
+    /**
+     * Reject an application: save reason, send email.
+     */
+    public function rejectApplication(Request $request, JobListing $job, JobApplication $application): RedirectResponse
+    {
+        $this->authorizeJob($request, $job);
+        abort_if($application->job_listing_id !== $job->id, 403);
+
+        $request->validate([
+            'rejection_reason' => 'required|string|max:2000',
+        ]);
+
+        $application->update([
+            'status' => 'rejected',
+            'rejection_reason' => $request->rejection_reason,
+            'reviewed_at' => now(),
+        ]);
+
+        // Send rejection email
+        Mail::to($application->user->email)
+            ->send(new ApplicationRejected($application, $job, $request->rejection_reason));
+
+        return back()->with('success', 'Application rejected and applicant notified.');
+    }
+
+    /**
+     * Approve an application: schedule interview, send email.
+     */
+    public function approveApplication(Request $request, JobListing $job, JobApplication $application): RedirectResponse
+    {
+        $this->authorizeJob($request, $job);
+        abort_if($application->job_listing_id !== $job->id, 403);
+
+        $request->validate([
+            'interview_date' => 'required|date|after_or_equal:today',
+            'interview_time' => 'required|string',
+            'interview_type' => 'required|in:Online Interview,In-Person,Phone',
+            'interviewer_name' => 'required|string|max:255',
+            'location_or_link' => 'nullable|string|max:500',
+            'notes' => 'nullable|string|max:2000',
+        ]);
+
+        $application->update([
+            'status' => 'approved',
+            'reviewed_at' => now(),
+        ]);
+
+        $interview = Interview::create([
+            'job_application_id' => $application->id,
+            'job_listing_id' => $job->id,
+            'candidate_id' => $application->user_id,
+            'employer_id' => $request->user()->id,
+            'interviewer_name' => $request->interviewer_name,
+            'interview_date' => $request->interview_date,
+            'interview_time' => $request->interview_time,
+            'interview_type' => $request->interview_type,
+            'location_or_link' => $request->location_or_link,
+            'notes' => $request->notes,
+            'status' => 'active',
+        ]);
+
+        $candidateName = "{$application->user->first_name} {$application->user->last_name}";
+
+        // Send interview invite email
+        Mail::to($application->user->email)
+            ->send(new InterviewScheduled($interview, $job, $candidateName));
+
+        return back()->with('success', 'Application approved and interview scheduled!');
+    }
+
+    /**
+     * Simple status toggle (e.g. back to pending).
+     */
+    public function updateApplicationStatus(Request $request, JobListing $job, JobApplication $application): RedirectResponse
+    {
+        $this->authorizeJob($request, $job);
+        abort_if($application->job_listing_id !== $job->id, 403);
+
+        $request->validate([
+            'status' => 'required|in:pending,approved,rejected',
+        ]);
+
+        $application->update([
+            'status' => $request->status,
+            'reviewed_at' => in_array($request->status, ['approved', 'rejected']) ? now() : $application->reviewed_at,
+        ]);
+
+        return back()->with('success', 'Application status updated.');
     }
 
     /* ── Private helpers ── */

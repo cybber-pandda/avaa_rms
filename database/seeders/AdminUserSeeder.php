@@ -13,10 +13,11 @@ class AdminUserSeeder extends Seeder
         User::firstOrCreate(
             ['email' => 'admin@jobplatform.com'],
             [
-                'name'              => 'Platform Admin',
-                'password'          => Hash::make('password'),
-                'role'              => 'admin',
-                'status'            => 'active',
+                'first_name' => 'Platform',
+                'last_name' => 'Admin',
+                'password' => Hash::make('password'),
+                'role' => 'admin',
+                'status' => 'active',
                 'profile_completed' => true,
                 'email_verified_at' => now(),
             ]
