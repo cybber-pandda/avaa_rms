@@ -169,6 +169,7 @@ export default function BrowseJobs({ jobs, savedJobIds, filters, availableSkills
     const [selectedCompanies, setSelectedCompanies] = useState<string[]>(filters.companies ?? []);
     const [saved, setSaved] = useState<Set<number>>(new Set(savedJobIds));
     const isFirstRender = useRef(true);
+    const isFirstRenderSearch = useRef(true);
 
     const pushFilters = (overrides: Record<string, any> = {}) => {
         const params: Record<string, any> = {
@@ -181,7 +182,11 @@ export default function BrowseJobs({ jobs, savedJobIds, filters, availableSkills
         router.get(route('job-seeker.jobs.browse'), params, { preserveState: true, replace: true });
     };
 
-    useEffect(() => { const t = setTimeout(() => pushFilters(), 400); return () => clearTimeout(t); }, [search]);
+    useEffect(() => {
+        if (isFirstRenderSearch.current) { isFirstRenderSearch.current = false; return; }
+        const t = setTimeout(() => pushFilters(), 400);
+        return () => clearTimeout(t);
+    }, [search]);
     useEffect(() => {
         if (isFirstRender.current) { isFirstRender.current = false; return; }
         pushFilters();

@@ -155,6 +155,7 @@ export default function SavedJobs({ user, savedJobs, filters, availableSkills, a
     const [selectedCompanies, setSelectedCompanies] = useState<string[]>(filters.companies ?? []);
     const [jobs, setJobs] = useState<JobListing[]>(savedJobs);
     const isFirstRender = useRef(true);
+    const isFirstRenderSearch = useRef(true);
 
     useEffect(() => { setJobs(savedJobs); }, [savedJobs]);
 
@@ -167,7 +168,11 @@ export default function SavedJobs({ user, savedJobs, filters, availableSkills, a
         }, { preserveState: true, replace: true });
     };
 
-    useEffect(() => { const t = setTimeout(pushFilters, 400); return () => clearTimeout(t); }, [search]);
+    useEffect(() => {
+        if (isFirstRenderSearch.current) { isFirstRenderSearch.current = false; return; }
+        const t = setTimeout(pushFilters, 400);
+        return () => clearTimeout(t);
+    }, [search]);
     useEffect(() => {
         if (isFirstRender.current) { isFirstRender.current = false; return; }
         pushFilters();
