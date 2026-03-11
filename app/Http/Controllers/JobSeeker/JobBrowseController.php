@@ -66,7 +66,7 @@ class JobBrowseController extends Controller
 
         // IDs the current user has applied to
         $appliedJobIds = JobApplication::where('user_id', $user->id)
-            ->where('status', '!=', 'withdrawn')
+            ->whereNotIn('status', ['withdrawn', 'accepted', 'hired', 'contract_ended'])
             ->pluck('job_listing_id')
             ->toArray();
 
@@ -100,7 +100,7 @@ class JobBrowseController extends Controller
 
         $savedJobIds = SavedJob::where('user_id', $user->id)->pluck('job_listing_id')->toArray();
         $appliedJobIds = JobApplication::where('user_id', $user->id)
-            ->where('status', '!=', 'withdrawn')
+            ->whereNotIn('status', ['withdrawn', 'accepted', 'hired', 'contract_ended'])
             ->pluck('job_listing_id')
             ->toArray();
 
@@ -166,7 +166,7 @@ class JobBrowseController extends Controller
         $jobs = $query->latest()->get();
 
         $appliedJobIds = JobApplication::where('user_id', $user->id)
-            ->where('status', '!=', 'withdrawn')
+            ->whereNotIn('status', ['withdrawn', 'accepted', 'hired', 'contract_ended'])
             ->pluck('job_listing_id')
             ->toArray();
 
@@ -220,7 +220,7 @@ class JobBrowseController extends Controller
         $apps = JobApplication::query()
             ->with(['jobListing.employer.employerProfile'])
             ->where('user_id', $user->id)
-            ->whereIn('status', ['hired', 'contract_ended'])
+            ->whereIn('status', ['accepted', 'hired', 'contract_ended'])
             ->orderByDesc('hired_at')
             ->get();
 
@@ -288,7 +288,7 @@ class JobBrowseController extends Controller
             ];
         };
 
-        $current = $apps->first(fn ($a) => $a->status === 'hired' && $a->contract_ended_at === null);
+        $current = $apps->first(fn ($a) => in_array($a->status, ['accepted', 'hired'], true) && $a->contract_ended_at === null);
         $currentShaped = $current ? $shape($current) : null;
 
         $past = $apps

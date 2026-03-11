@@ -36,6 +36,7 @@ class JobApplicationController extends Controller
             ])
             ->where('user_id', $user->id)
             ->where('status', '!=', 'draft')
+            ->whereNotIn('status', ['accepted', 'hired', 'contract_ended'])
             ->latest()
             ->get()
             ->map(function (JobApplication $app) {
@@ -75,13 +76,13 @@ class JobApplicationController extends Controller
 
                 // Derive "Interviewing" stage if an active interview exists.
                 $stage = $app->status;
-                if (! in_array($app->status, ['rejected', 'withdrawn', 'hired', 'contract_ended'], true)) {
+                if (! in_array($app->status, ['rejected', 'withdrawn', 'accepted', 'hired', 'contract_ended'], true)) {
                     if ($app->interview && ($app->interview->status ?? null) === 'active') {
                         $stage = 'interviewing';
                     }
                 }
 
-                $canWithdraw = ! in_array($app->status, ['withdrawn', 'rejected', 'hired', 'contract_ended'], true);
+                $canWithdraw = ! in_array($app->status, ['withdrawn', 'rejected', 'accepted', 'hired', 'contract_ended'], true);
 
                 $interview = $app->interview;
                 $interviewDate = $interview?->interview_date;
@@ -149,7 +150,7 @@ class JobApplicationController extends Controller
     {
         abort_unless($application->user_id === $request->user()->id, 403);
 
-        if (in_array($application->status, ['withdrawn', 'rejected', 'hired', 'contract_ended'], true)) {
+        if (in_array($application->status, ['withdrawn', 'rejected', 'accepted', 'hired', 'contract_ended'], true)) {
             return back();
         }
 
