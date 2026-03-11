@@ -1,6 +1,7 @@
 import { useState, FormEvent } from 'react';
 import { router, usePage } from '@inertiajs/react';
 import AppLayout from '@/Layouts/AppLayout';
+import type { PageProps } from '@/types';
 
 interface ReportedUser {
     id: number;
@@ -11,11 +12,11 @@ interface ReportedUser {
     subtitle: string;
 }
 
-interface PageProps {
+interface ReportPageProps extends PageProps {
     reportedUser: ReportedUser;
     conversationId: number | null;
     flash?: { success?: string } | null;
-    auth: { user: any; session_id: string };
+auth: { user: any; session_id: string };
     unreadNotificationsCount: number;
     [key: string]: any;
 }

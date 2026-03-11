@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { router, usePage } from '@inertiajs/react';
 import AppLayout from '@/Layouts/AppLayout';
 import BlockUserModal from './BlockUserModal';
+import type { PageProps } from '@/types';
 import axios from 'axios';
 
 /* ══════════════════════════════════════════════════════════
@@ -49,12 +50,12 @@ interface UserResult {
     role: string;
     subtitle: string;
 }
-interface PageProps {
+interface MessagingIndexPageProps extends PageProps {
     conversations: ConversationSummary[];
     activeConversationId: number | null;
     initialMessages: Message[];
     activeConversation: ConversationSummary | null;
-    auth: { user: any; session_id: string };
+auth: { user: any; session_id: string };
     unreadNotificationsCount: number;
     [key: string]: any;
 }
@@ -656,7 +657,7 @@ export default function MessagingIndex({
     activeConversation: ConversationSummary | null;
     unreadNotificationsCount: number;
 }) {
-    const [showBlockModal, setShowBlockModal] = useState(false);
+const [showBlockModal, setShowBlockModal] = useState(false);
     const [blocking, setBlocking] = useState(false);
 
     const { auth } = usePage<PageProps>().props;
