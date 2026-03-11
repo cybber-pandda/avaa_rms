@@ -54,7 +54,8 @@ interface PageProps {
     activeConversationId: number | null;
     initialMessages: Message[];
     activeConversation: ConversationSummary | null;
-    auth: { user: any };
+    auth: { user: any; session_id: string };
+    unreadNotificationsCount: number;
     [key: string]: any;
 }
 
@@ -647,11 +648,13 @@ export default function MessagingIndex({
     activeConversationId: initActiveId,
     initialMessages: initMsgs,
     activeConversation: initActive,
+    unreadNotificationsCount,
 }: {
     conversations: ConversationSummary[];
     activeConversationId: number | null;
     initialMessages: Message[];
     activeConversation: ConversationSummary | null;
+    unreadNotificationsCount: number;
 }) {
     const [showBlockModal, setShowBlockModal] = useState(false);
     const [blocking, setBlocking] = useState(false);

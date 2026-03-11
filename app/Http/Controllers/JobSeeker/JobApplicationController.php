@@ -5,6 +5,7 @@ namespace App\Http\Controllers\JobSeeker;
 use App\Http\Controllers\Controller;
 use App\Models\JobApplication;
 use App\Models\JobListing;
+use App\Models\User;
 use App\Notifications\ApplicationReceivedNotification;
 use App\Notifications\NewApplicationNotification;
 use Illuminate\Http\Request;
@@ -21,7 +22,19 @@ class JobApplicationController extends Controller
      */
     public function create(JobListing $job): Response|RedirectResponse
     {
-        $user = Auth::user();
+        $user = User::query()
+            ->with('jobSeekerProfile')
+            ->findOrFail(Auth::id());
+
+        if ($job->status !== 'active') {
+            return redirect()->route('job-seeker.jobs.browse')
+                ->withErrors(['apply' => 'This job is not currently accepting applications.']);
+        }
+
+        if ($job->deadline && now()->startOfDay()->gt($job->deadline)) {
+            return redirect()->route('job-seeker.jobs.show', $job->id)
+                ->withErrors(['apply' => 'This job posting has expired.']);
+        }
 
         // Already applied?
         $existing = JobApplication::where('user_id', $user->id)
@@ -33,7 +46,6 @@ class JobApplicationController extends Controller
                 ->with('info', 'You have already applied to this job.');
         }
 
-        $user->load('jobSeekerProfile');
         $profile = $user->jobSeekerProfile;
 
         // Pre-fill data from profile
@@ -72,11 +84,23 @@ class JobApplicationController extends Controller
             'job' => [
                 'id' => $job->id,
                 'title' => $job->title,
-                'company' => $job->employer?->employerProfile?->company_name
+                'company' => $job->company_name
+                    ?? $job->employer?->employerProfile?->company_name
                     ?? $job->employer?->first_name
                     ?? 'Unknown Company',
                 'location' => $job->location,
                 'employment_type' => $job->employment_type,
+                'description' => $job->description,
+                'responsibilities' => $job->responsibilities,
+                'qualifications' => $job->qualifications,
+                'project_timeline' => $job->project_timeline,
+                'onboarding_process' => $job->onboarding_process,
+                'salary_min' => $job->salary_min,
+                'salary_max' => $job->salary_max,
+                'salary_currency' => $job->salary_currency,
+                'skills_required' => $job->skills_required ?? [],
+                'deadline' => $job->deadline?->toDateString(),
+                'logo_path' => $job->logo_path,
             ],
             'prefill' => $prefill,
             'draftId' => $existing?->id,
@@ -89,6 +113,14 @@ class JobApplicationController extends Controller
     public function store(Request $request, JobListing $job): RedirectResponse
     {
         $user = $request->user();
+
+        if ($job->status !== 'active') {
+            return back()->withErrors(['apply' => 'This job is not currently accepting applications.']);
+        }
+
+        if ($job->deadline && now()->startOfDay()->gt($job->deadline)) {
+            return back()->withErrors(['apply' => 'This job posting has expired.']);
+        }
 
         // Check for existing non-draft application
         $existing = JobApplication::where('user_id', $user->id)
@@ -179,6 +211,10 @@ class JobApplicationController extends Controller
     public function saveDraft(Request $request, JobListing $job): RedirectResponse
     {
         $user = $request->user();
+
+        if ($job->status !== 'active') {
+            return back()->withErrors(['apply' => 'This job is not currently accepting applications.']);
+        }
 
         $existing = JobApplication::where('user_id', $user->id)
             ->where('job_listing_id', $job->id)

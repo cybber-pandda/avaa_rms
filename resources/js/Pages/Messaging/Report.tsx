@@ -15,7 +15,8 @@ interface PageProps {
     reportedUser: ReportedUser;
     conversationId: number | null;
     flash?: { success?: string } | null;
-    auth: { user: any };
+    auth: { user: any; session_id: string };
+    unreadNotificationsCount: number;
     [key: string]: any;
 }
 
@@ -47,7 +48,7 @@ const reasons = [
     },
 ];
 
-export default function ReportPage({ reportedUser, conversationId }: PageProps) {
+export default function ReportPage({ reportedUser, conversationId, unreadNotificationsCount }: PageProps) {
     const { flash } = usePage<PageProps>().props;
     const [reason, setReason] = useState('');
     const [details, setDetails] = useState('');
