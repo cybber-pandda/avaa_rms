@@ -161,7 +161,7 @@ export default function Welcome() {
                     {/* Logo */}
                     <a href="/" className="flex items-center gap-2.5 flex-shrink-0">
                         <img
-                            src="/storage/logos/System_Logo/AVAA_Logo.png"
+                            src="/logos/AVAA_Logo.png"
                             alt="AVAA"
                             className="h-8 w-auto object-contain"
                         />

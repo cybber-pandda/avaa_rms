@@ -45,7 +45,7 @@ export default function AuthLayout({ children, title, subtitle }: AuthLayoutProp
 
                 <div className="relative z-10 text-center max-w-sm">
                     <img
-                        src="/storage/logos/System_Logo/AVAA_Logo.png"
+                        src="/logos/AVAA_Logo.png"
                         alt="AVAA Logo"
                         className="h-32 w-auto mx-auto mb-8 drop-shadow-lg"
                     />
