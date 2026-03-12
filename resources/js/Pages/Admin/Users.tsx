@@ -281,9 +281,10 @@ export default function AdminUsers({ users, filters }: Props) {
                     </div>
                 </div>
 
-                {/* ── Table ── */}
+                {/* ── Table / Grid Container ── */}
                 <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
                     {users.data.length === 0 ? (
+
                         <div className="flex flex-col items-center justify-center py-24 px-6 text-center">
                             <div className="w-20 h-20 rounded-full bg-[#e8f4f4] flex items-center justify-center text-[#3d9e9e] mb-4">
                                 <IcoUsers />
@@ -291,7 +292,10 @@ export default function AdminUsers({ users, filters }: Props) {
                             <p className="text-base font-bold text-gray-800 mb-1">No users found</p>
                             <p className="text-sm text-gray-400">Try adjusting your search or filters.</p>
                         </div>
-                    ) : (
+
+                    ) : viewMode === 'list' ? (
+
+                        /* ── LIST VIEW (TABLE) ── */
                         <div className="overflow-x-auto">
                             <table className="w-full text-sm min-w-[700px]">
                                 <thead>
@@ -303,6 +307,7 @@ export default function AdminUsers({ users, filters }: Props) {
                                         ))}
                                     </tr>
                                 </thead>
+
                                 <tbody className="divide-y divide-gray-50">
                                     {users.data.map((user, i) => {
                                         const initials = `${(user.first_name ?? '').charAt(0)}${(user.last_name ?? '').charAt(0)}`.toUpperCase();
@@ -314,6 +319,7 @@ export default function AdminUsers({ users, filters }: Props) {
 
                                         return (
                                             <tr key={user.id} className={`transition-colors ${isDeleted ? 'opacity-60 bg-gray-50/60' : 'hover:bg-gray-50/50'}`}>
+
                                                 {/* User */}
                                                 <td className="px-6 py-4">
                                                     <div className="flex items-center gap-3">
@@ -323,6 +329,7 @@ export default function AdminUsers({ users, filters }: Props) {
                                                                 ? <img src={user.avatar} alt={initials} className="w-full h-full object-cover" />
                                                                 : initials}
                                                         </div>
+
                                                         <div className="min-w-0">
                                                             <p className="font-semibold text-gray-800 leading-tight truncate">
                                                                 {user.first_name} {user.last_name}
@@ -392,6 +399,7 @@ export default function AdminUsers({ users, filters }: Props) {
                                                                 >
                                                                     <IcoEye />
                                                                 </button>
+
                                                                 <button
                                                                     onClick={() => confirmDelete(user)}
                                                                     disabled={isBusy}
@@ -404,12 +412,68 @@ export default function AdminUsers({ users, filters }: Props) {
                                                         )}
                                                     </div>
                                                 </td>
+
                                             </tr>
                                         );
                                     })}
                                 </tbody>
                             </table>
                         </div>
+
+                    ) : (
+
+                        /* ── GRID VIEW ── */
+                        <div className="p-6 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5">
+                            {users.data.map((user, i) => {
+                                const initials = `${(user.first_name ?? '').charAt(0)}${(user.last_name ?? '').charAt(0)}`.toUpperCase();
+                                const isActive = effectiveStatus(user) === 'active';
+
+                                return (
+                                    <div key={user.id} className="border border-gray-200 rounded-xl p-4 hover:shadow-md transition">
+
+                                        <div className="flex items-center gap-3 mb-3">
+                                            <div className={`w-10 h-10 rounded-full flex items-center justify-center text-white text-sm font-bold
+                                                ${user.avatar ? '' : AVATAR_BG[i % AVATAR_BG.length]}`}>
+                                                {user.avatar
+                                                    ? <img src={user.avatar} className="w-full h-full object-cover rounded-full" />
+                                                    : initials}
+                                            </div>
+
+                                            <div>
+                                                <p className="font-semibold text-gray-800 text-sm">
+                                                    {user.first_name} {user.last_name}
+                                                </p>
+                                                <p className="text-xs text-gray-400">{user.email}</p>
+                                            </div>
+                                        </div>
+
+                                        <div className="flex items-center justify-between mt-3">
+                                            <span className={`text-xs font-semibold px-2 py-1 rounded-full
+                                                ${isActive
+                                                    ? 'bg-emerald-50 text-emerald-700'
+                                                    : 'bg-gray-100 text-gray-500'}`}>
+                                                {isActive ? 'Active' : 'Inactive'}
+                                            </span>
+
+                                            <div className="flex gap-1">
+                                                <button className="p-1.5 text-gray-400 hover:text-[#3d9e9e]">
+                                                    <IcoEye />
+                                                </button>
+
+                                                <button
+                                                    onClick={() => confirmDelete(user)}
+                                                    className="p-1.5 text-gray-400 hover:text-red-500"
+                                                >
+                                                    <IcoTrash />
+                                                </button>
+                                            </div>
+                                        </div>
+
+                                    </div>
+                                );
+                            })}
+                        </div>
+
                     )}
 
                     {/* ── Pagination ── */}
@@ -418,6 +482,7 @@ export default function AdminUsers({ users, filters }: Props) {
                             <p className="text-xs text-gray-400">
                                 Showing {(users.current_page - 1) * users.per_page + 1}–{Math.min(users.current_page * users.per_page, users.total)} of {users.total} users
                             </p>
+
                             <div className="flex items-center gap-1">
                                 {users.links.map((link, i) => (
                                     <button
