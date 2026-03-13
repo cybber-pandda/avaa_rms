@@ -397,6 +397,11 @@ export default function ReportView({ reports = [], filters }: Props) {
     const handleTabChange = (newTab: 'job_posts' | 'messages') => {
         setTab(newTab);
         setStatus('pending');
+        try {
+            router.get(route('admin.reports.index'), { status: 'pending', tab: newTab }, { preserveState: true });
+        } catch (e) {
+            // preview mode
+        }
     };
 
     const handleStatusChange = (newStatus: string) => {

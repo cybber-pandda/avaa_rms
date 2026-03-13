@@ -237,6 +237,8 @@ Route::middleware(['auth', 'verified', 'profile.complete'])->group(function () {
         
         // Report Management
         Route::get('/reports', [App\Http\Controllers\Admin\AdminReportController::class, 'index'])->name('reports.index');
+        Route::patch('/reports/{report}/approve', [App\Http\Controllers\Admin\AdminReportController::class, 'approve'])->name('reports.approve');
+        Route::patch('/reports/{report}/decline', [App\Http\Controllers\Admin\AdminReportController::class, 'decline'])->name('reports.decline');
 
         // User Management
         Route::get('/users', [UserManagementController::class, 'index'])->name('users.index');
