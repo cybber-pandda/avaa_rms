@@ -1,6 +1,7 @@
 import { Head, router } from '@inertiajs/react';
 import { useState, useCallback } from 'react';
 import AppLayout from '@/Layouts/AppLayout';
+import ImageInitialsFallback from '@/Components/ImageInitialsFallback';
 
 /* ── Types ── */
 interface JobSeekerProfile { skills?: string | null }
@@ -323,12 +324,13 @@ export default function AdminUsers({ users, filters }: Props) {
                                                 {/* User */}
                                                 <td className="px-6 py-4">
                                                     <div className="flex items-center gap-3">
-                                                        <div className={`w-9 h-9 rounded-full flex-shrink-0 flex items-center justify-center text-white text-xs font-bold overflow-hidden
-                                                            ${user.avatar ? '' : AVATAR_BG[i % AVATAR_BG.length]}`}>
-                                                            {user.avatar
-                                                                ? <img src={user.avatar} alt={initials} className="w-full h-full object-cover" />
-                                                                : initials}
-                                                        </div>
+                                                        <ImageInitialsFallback
+                                                            src={user.avatar}
+                                                            alt={initials}
+                                                            initials={initials}
+                                                            className={`w-9 h-9 rounded-full flex-shrink-0 overflow-hidden ${user.avatar ? 'bg-white' : AVATAR_BG[i % AVATAR_BG.length]}`}
+                                                            textClassName="text-white text-xs font-bold flex items-center justify-center"
+                                                        />
 
                                                         <div className="min-w-0">
                                                             <p className="font-semibold text-gray-800 leading-tight truncate">
@@ -432,12 +434,13 @@ export default function AdminUsers({ users, filters }: Props) {
                                     <div key={user.id} className="border border-gray-200 rounded-xl p-4 hover:shadow-md transition">
 
                                         <div className="flex items-center gap-3 mb-3">
-                                            <div className={`w-10 h-10 rounded-full flex items-center justify-center text-white text-sm font-bold
-                                                ${user.avatar ? '' : AVATAR_BG[i % AVATAR_BG.length]}`}>
-                                                {user.avatar
-                                                    ? <img src={user.avatar} className="w-full h-full object-cover rounded-full" />
-                                                    : initials}
-                                            </div>
+                                            <ImageInitialsFallback
+                                                src={user.avatar}
+                                                alt={initials}
+                                                initials={initials}
+                                                className={`w-10 h-10 rounded-full overflow-hidden ${user.avatar ? 'bg-white' : AVATAR_BG[i % AVATAR_BG.length]}`}
+                                                textClassName="text-white text-sm font-bold flex items-center justify-center"
+                                            />
 
                                             <div>
                                                 <p className="font-semibold text-gray-800 text-sm">

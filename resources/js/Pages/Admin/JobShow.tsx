@@ -1,5 +1,6 @@
 import { Head, Link, router } from '@inertiajs/react';
 import AppLayout from '@/Layouts/AppLayout';
+import ImageInitialsFallback from '@/Components/ImageInitialsFallback';
 
 /* ── Types ── */
 interface Employer {
@@ -208,14 +209,13 @@ export default function AdminJobShow({ job, appCounts }: Props) {
                             <div className="bg-white rounded-2xl border border-gray-200 p-5">
                                 <h3 className="text-sm font-bold text-gray-800 mb-4">Posted By</h3>
                                 <div className="flex items-center gap-3">
-                                    {job.employer.avatar ? (
-                                        <img src={job.employer.avatar} alt={job.employer.first_name}
-                                            className="w-11 h-11 rounded-full object-cover flex-shrink-0" />
-                                    ) : (
-                                        <div className={`w-11 h-11 rounded-full ${AVATAR_BG[job.employer.id % AVATAR_BG.length]} flex items-center justify-center text-white text-sm font-bold flex-shrink-0`}>
-                                            {employerInitials}
-                                        </div>
-                                    )}
+                                    <ImageInitialsFallback
+                                        src={job.employer.avatar}
+                                        alt={job.employer.first_name}
+                                        initials={employerInitials}
+                                        className={`w-11 h-11 rounded-full flex-shrink-0 overflow-hidden ${job.employer.avatar ? 'bg-white' : AVATAR_BG[job.employer.id % AVATAR_BG.length]}`}
+                                        textClassName="text-white text-sm font-bold flex items-center justify-center"
+                                    />
                                     <div>
                                         <p className="text-sm font-semibold text-gray-800">
                                             {job.employer.first_name} {job.employer.last_name}
