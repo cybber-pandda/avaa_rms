@@ -1,5 +1,6 @@
 import { Head, router } from '@inertiajs/react';
 import AppLayout from '@/Layouts/AppLayout';
+import ImageInitialsFallback from '@/Components/ImageInitialsFallback';
 import { useState, useRef, useEffect } from 'react';
 
 /* ── Types ── */
@@ -8,6 +9,7 @@ interface JobListing {
     title: string;
     location: string;
     company: string;
+    logo_path?: string | null;
     status: 'active' | 'inactive' | 'draft';
     applications_count: number;
     posted_date: string;
@@ -40,6 +42,12 @@ const AVATAR_COLORS = [
 ];
 function avatarColor(id: number) { return AVATAR_COLORS[id % AVATAR_COLORS.length]; }
 function formatDate(dateStr: string) { return new Date(dateStr).toISOString().slice(0, 10); }
+function resolveImageUrl(path?: string | null) {
+    if (!path) return null;
+    if (path.startsWith('http://') || path.startsWith('https://')) return path;
+    if (path.startsWith('/')) return path;
+    return `/storage/${path}`;
+}
 function timeAgo(dateStr: string) {
     const diff = Math.floor((Date.now() - new Date(dateStr).getTime()) / 1000);
     if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
@@ -100,9 +108,13 @@ function ViewJobModal({ job, onClose, onEdit }: {
                     cut off. The -mt-14 pulls it up over the gradient header.
                 */}
                 <div className="px-6 -mt-14 flex items-end justify-between flex-shrink-0 relative z-10">
-                    <div className={`w-20 h-20 rounded-2xl ${avatarColor(job.id)} flex items-center justify-center text-white text-2xl font-bold ring-4 ring-white shadow-md`}>
-                        {getInitials(job.company || job.title)}
-                    </div>
+                    <ImageInitialsFallback
+                        src={resolveImageUrl(job.logo_path)}
+                        alt={`${job.company || job.title} logo`}
+                        initials={getInitials(job.company || job.title)}
+                        className={`w-20 h-20 rounded-2xl ring-4 ring-white shadow-md overflow-hidden ${resolveImageUrl(job.logo_path) ? 'bg-white' : avatarColor(job.id)}`}
+                        textClassName="text-white text-2xl font-bold flex items-center justify-center"
+                    />
                     <button onClick={onEdit}
                         className="mb-1 px-4 py-1.5 bg-avaa-primary hover:bg-avaa-primary-hover text-white text-sm font-semibold rounded-xl transition-colors shadow-sm">
                         Edit
@@ -922,9 +934,13 @@ export default function ManageJobs({ user, profile, jobs, isVerified }: Props) {
                                     <tr key={job.id} className="hover:bg-gray-50/60 transition-colors">
                                         <td className="px-5 py-4">
                                             <div className="flex items-center gap-3">
-                                                <div className={`w-9 h-9 rounded-xl flex items-center justify-center text-white text-xs font-bold flex-shrink-0 ${avatarColor(job.id)}`}>
-                                                    {getInitials(job.title)}
-                                                </div>
+                                                <ImageInitialsFallback
+                                                    src={resolveImageUrl(job.logo_path)}
+                                                    alt={`${job.company} logo`}
+                                                    initials={getInitials(job.title)}
+                                                    className={`w-9 h-9 rounded-xl border border-gray-200 flex-shrink-0 overflow-hidden ${resolveImageUrl(job.logo_path) ? 'bg-white' : avatarColor(job.id)}`}
+                                                    textClassName="text-white text-xs font-bold flex items-center justify-center"
+                                                />
                                                 <div className="min-w-0">
                                                     <button onClick={() => setViewJob(job)}
                                                         className="text-sm font-semibold text-avaa-dark hover:text-avaa-teal transition-colors truncate block text-left">
