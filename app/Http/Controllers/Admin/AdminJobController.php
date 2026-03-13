@@ -83,7 +83,8 @@ class AdminJobController extends Controller
         $appCounts = [
             'total' => $job->applications()->count(),
             'pending' => $job->applications()->where('status', 'pending')->count(),
-            'approved' => $job->applications()->where('status', 'approved')->count(),
+            // Treat downstream approved states as approved in admin insights.
+            'approved' => $job->applications()->whereIn('status', ['approved', 'hired', 'contract_ended'])->count(),
             'rejected' => $job->applications()->where('status', 'rejected')->count(),
         ];
 
